@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Namoshek\Redis\Sentinel\Services;
 
+use Illuminate\Support\Facades\Log;
 use Namoshek\Redis\Sentinel\Exceptions\RetryRedisException;
 use RedisException;
 use Throwable;
@@ -57,32 +58,38 @@ class RetryManager
         ?callable $failureCallback = null,
     ): mixed {
         $lastException = null;
-
+        Log::debug("RetryManage:: retryOnFailure");
         for ($currentAttempt = 0; $currentAttempt <= $retryAttempts; $currentAttempt++) {
+            Log::debug("Retry Manager: currentAttempt: $currentAttempt, retryAttempts: $retryAttempts, currentAttempt: $currentAttempt");
             try {
                 // We directly return the callback on the first attempt.
                 if ($currentAttempt === 0) {
+                    Log::debug("currentAttempt == 0, return callback()");
                     return $callback();
                 }
-
+                Log::debug("calling retry with callback");
                 // Wrap the callback to distinguish them from the first attempt.
                 return $this->retry($callback);
             } catch (Throwable $exception) {
                 // Check if we should retry this exception.
                 if (! $this->shouldRetry($exception)) {
+                    Log::debug("Should not retry, throw exception");
                     throw $exception;
                 }
 
                 // Wait before retry.
                 if ($retryAttempts !== 0) {
-                    usleep($retryDelay * 1000);
+                    $delay = $retryDelay * 1000;
+                    Log::debug("retryAttempts ($retryAttempts) !== 0, usleep for $delay");
+                    usleep($delay);
                 }
 
                 // Execute optional failure callback.
                 if ($failureCallback && is_callable($failureCallback)) {
+                    Log::debug("Executing failure callback");
                     call_user_func($failureCallback);
                 }
-
+                Log::debug("Set lastException = exception");
                 $lastException = $exception;
             }
         }

@@ -61,23 +61,18 @@ class RetryManager
     {
         $lastException = null;
         $debug = Str::contains(gethostname(), ['origin1', 'origin2']);
-        if ($debug)
-            Log::debug("RetryManage:: retryOnFailure");
+
         for ($currentAttempt = 0; $currentAttempt <= $retryAttempts; $currentAttempt++) {
-            if ($debug)
-                Log::debug("Retry Manager: currentAttempt: $currentAttempt, retryAttempts: $retryAttempts, currentAttempt: $currentAttempt");
             try {
                 // We directly return the callback on the first attempt.
                 if ($currentAttempt === 0) {
-                    if ($debug)
-                        Log::debug("currentAttempt == 0, return callback()");
                     return $callback();
                 }
-                if ($debug)
-                    Log::debug("calling retry with callback");
                 // Wrap the callback to distinguish them from the first attempt.
                 return $this->retry($callback);
             } catch (Throwable $exception) {
+                if ($debug)
+                    Log::debug("RetryManage::exception hit");
                 // Check if we should retry this exception.
                 if (!$this->shouldRetry($exception)) {
                     if ($debug)

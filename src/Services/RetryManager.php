@@ -150,15 +150,19 @@ class RetryManager
     public function shouldRetryRedisException(RedisException $exception): bool
     {
         // We convert the exception message to lower-case in order to perform case-insensitive comparison.
-        $exceptionMessage = strtolower($exception->getMessage());
-
+        $message = $exception->getMessage();
+        $exceptionMessage = strtolower($message);
+        Log::debug("RetryManager: shouldRetryRedisException, $exceptionMessage: $exceptionMessage");
         // Because we also match only partial exception messages, we cannot use in_array() at this point.
         foreach (self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY as $errorMessage) {
-            if (str_contains($exceptionMessage, $errorMessage)) {
+            $contains = str_contains($exceptionMessage, $errorMessage);
+            Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
+            if ($contains) {
+                Log::debug("RetryManager: shouldRetryRedisException, return true");
                 return true;
             }
         }
-
+        Log::debug("RetryManager: shouldRetryRedisException, return false");
         return false;
     }
 

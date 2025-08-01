@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Namoshek\Redis\Sentinel\Services;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Namoshek\Redis\Sentinel\Exceptions\RetryRedisException;
 use RedisException;
 use Throwable;
@@ -43,53 +44,63 @@ class RetryManager
      * Attempt to retry the provided operation when the client fails to connect
      * to a Redis server.
      *
-     * @param  callable  $callback  The operation to execute.
-     * @param  int  $retryAttempts  The number of times the retry is performed.
-     * @param  int  $retryDelay  The time in milliseconds to wait before retrying again.
-     * @param  callable|null  $failureCallback  The callback to execute when failure occours.
+     * @param callable $callback The operation to execute.
+     * @param int $retryAttempts The number of times the retry is performed.
+     * @param int $retryDelay The time in milliseconds to wait before retrying again.
+     * @param callable|null $failureCallback The callback to execute when failure occours.
      * @return mixed The result of the first successful attempt.
      *
      * @throws RetryRedisException|RedisException
      */
     public function retryOnFailure(
-        callable $callback,
-        int $retryAttempts,
-        int $retryDelay,
+        callable  $callback,
+        int       $retryAttempts,
+        int       $retryDelay,
         ?callable $failureCallback = null,
-    ): mixed {
+    ): mixed
+    {
         $lastException = null;
-     //   Log::debug("RetryManage:: retryOnFailure");
+        $debug = Str::contains(gethostname(), ['origin1', 'origin2']);
+        if ($debug)
+            Log::debug("RetryManage:: retryOnFailure");
         for ($currentAttempt = 0; $currentAttempt <= $retryAttempts; $currentAttempt++) {
-        //    Log::debug("Retry Manager: currentAttempt: $currentAttempt, retryAttempts: $retryAttempts, currentAttempt: $currentAttempt");
+            if ($debug)
+                Log::debug("Retry Manager: currentAttempt: $currentAttempt, retryAttempts: $retryAttempts, currentAttempt: $currentAttempt");
             try {
                 // We directly return the callback on the first attempt.
                 if ($currentAttempt === 0) {
-                  //  Log::debug("currentAttempt == 0, return callback()");
+                    if ($debug)
+                        Log::debug("currentAttempt == 0, return callback()");
                     return $callback();
                 }
-             //   Log::debug("calling retry with callback");
+                if ($debug)
+                    Log::debug("calling retry with callback");
                 // Wrap the callback to distinguish them from the first attempt.
                 return $this->retry($callback);
             } catch (Throwable $exception) {
                 // Check if we should retry this exception.
-                if (! $this->shouldRetry($exception)) {
-            //        Log::debug("Should not retry, throw exception");
+                if (!$this->shouldRetry($exception)) {
+                    if ($debug)
+                        Log::debug("Should not retry, throw exception");
                     throw $exception;
                 }
 
                 // Wait before retry.
                 if ($retryAttempts !== 0) {
                     $delay = $retryDelay * 1000;
-              //      Log::debug("retryAttempts ($retryAttempts) !== 0, usleep for $delay");
+                    if ($debug)
+                        Log::debug("retryAttempts ($retryAttempts) !== 0, usleep for $delay");
                     usleep($delay);
                 }
 
                 // Execute optional failure callback.
                 if ($failureCallback && is_callable($failureCallback)) {
-              //      Log::debug("Executing failure callback");
+                    if ($debug)
+                        Log::debug("Executing failure callback");
                     call_user_func($failureCallback);
                 }
-             //   Log::debug("Set lastException = exception");
+                if ($debug)
+                    Log::debug("Set lastException = exception");
                 $lastException = $exception;
             }
         }

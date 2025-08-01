@@ -72,7 +72,7 @@ class RetryManager
                 return $this->retry($callback);
             } catch (Throwable $exception) {
                 if ($debug)
-                    Log::debug("RetryManage::exception hit");
+                    Log::debug("RetryManager::exception hit");
                 // Check if we should retry this exception.
                 if (!$this->shouldRetry($exception)) {
                     if ($debug)
@@ -122,14 +122,24 @@ class RetryManager
      */
     public function shouldRetry(Throwable $exception): bool
     {
-        if ($exception instanceof RedisException && $this->shouldRetryRedisException($exception)) {
+        $shouldRetryRedisException = $this->shouldRetryRedisException($exception);
+        $instanceofRedisException = $exception instanceof RedisException;
+        Log::debug("RetryManager: shouldRetry: shouldRetryRedisException: $shouldRetryRedisException, instanceofRedisException: $instanceofRedisException");
+        if ($instanceofRedisException && $shouldRetryRedisException) {
+            Log::debug("RetryManager: shouldRetry return true (1)");
             return true;
+        } else {
+            Log::debug("RetryManager: shouldRetry continue (1)");
         }
 
         if ($this->isNameResolutionException($exception)) {
+            Log::debug("RetryManager: shouldRetry isNameResolutionException, return true");
             return true;
+        } else {
+            Log::debug("RetryManager: isNameResolutionException, not set");
         }
 
+        Log::debug("RetryManager: return false");
         return false;
     }
 

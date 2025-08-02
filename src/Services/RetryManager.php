@@ -93,12 +93,8 @@ class RetryManager
 
                 // Execute optional failure callback.
                 if ($failureCallback && is_callable($failureCallback)) {
-                    if ($debug)
-                        Log::debug("Executing failure callback");
                     call_user_func($failureCallback);
                 }
-                if ($debug)
-                    Log::debug("Set lastException = exception");
                 $lastException = $exception;
             }
         }
@@ -150,16 +146,13 @@ class RetryManager
         // Because we also match only partial exception messages, we cannot use in_array() at this point.
         foreach (self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY as $errorMessage) {
             $contains = str_contains($exceptionMessage, $errorMessage);
-            //     Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
             if ($contains) {
-                Log::debug("RetryManager: shouldRetryRedisException, return true");
                 if (Str::contains(gethostname(), ['origin1', 'origin2'])) {
                     Log::channel('health')->info("We just had a redis timeout exception but are returning true to retry, check logs: " . gethostname());
                 }
                 return true;
             }
         }
-        Log::debug("RetryManager: shouldRetryRedisException, return false");
         return false;
     }
 

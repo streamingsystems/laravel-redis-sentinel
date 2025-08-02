@@ -153,6 +153,7 @@ class RetryManager
                 return true;
             }
         }
+        Log::debug("$exceptionMessage is not in this list, don't retry", self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY);
         return false;
     }
 

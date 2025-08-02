@@ -70,6 +70,8 @@ class RetryManager
                     return $callback();
                 }
                 // Wrap the callback to distinguish them from the first attempt.
+                if ($debug)
+                    Log::debug("Calling retry with callback");
                 return $this->retry($callback);
             } catch (Throwable $exception) {
                 if ($debug)
@@ -157,7 +159,7 @@ class RetryManager
         // Because we also match only partial exception messages, we cannot use in_array() at this point.
         foreach (self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY as $errorMessage) {
             $contains = str_contains($exceptionMessage, $errorMessage);
-            Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
+       //     Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
             if ($contains) {
                 Log::debug("RetryManager: shouldRetryRedisException, return true");
                 if ( Str::contains(gethostname(), ['origin1', 'origin2'])) {

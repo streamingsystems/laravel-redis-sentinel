@@ -29,6 +29,7 @@ class RetryManager
         'loading',
         'readonly',
         "can't write against a read only replica",
+        "connection timed out"
     ];
 
     /**
@@ -152,13 +153,16 @@ class RetryManager
         // We convert the exception message to lower-case in order to perform case-insensitive comparison.
         $message = $exception->getMessage();
         $exceptionMessage = strtolower($message);
-        Log::debug("RetryManager: shouldRetryRedisException, $exceptionMessage: $exceptionMessage");
+        Log::debug("RetryManager: shouldRetryRedisException, exceptionMessage: $exceptionMessage");
         // Because we also match only partial exception messages, we cannot use in_array() at this point.
         foreach (self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY as $errorMessage) {
             $contains = str_contains($exceptionMessage, $errorMessage);
             Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
             if ($contains) {
                 Log::debug("RetryManager: shouldRetryRedisException, return true");
+                if ( Str::contains(gethostname(), ['origin1', 'origin2'])) {
+                    Log::channel('health')->info("We just had a redis timeout exception but are returning true to retry, check logs: " . gethostname());
+                }
                 return true;
             }
         }

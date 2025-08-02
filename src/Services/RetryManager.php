@@ -153,7 +153,9 @@ class RetryManager
                 return true;
             }
         }
-        Log::debug("$exceptionMessage is not in this list, don't retry", self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY);
+        if (Str::contains(gethostname(), ['origin1', 'origin2'])) {
+            Log::channel('health')->info("$exceptionMessage is not in the list, don't retry: " . gethostname());
+        }
         return false;
     }
 

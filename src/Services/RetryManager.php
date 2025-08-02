@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Namoshek\Redis\Sentinel\Services;
 
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Namoshek\Redis\Sentinel\Exceptions\RetryRedisException;
 use RedisException;
 use Throwable;
@@ -29,7 +28,7 @@ class RetryManager
         'loading',
         'readonly',
         "can't write against a read only replica",
-   //     "connection timed out"
+        "connection timed out"
     ];
 
     /**
@@ -61,8 +60,6 @@ class RetryManager
     ): mixed
     {
         $lastException = null;
-        $debug = Str::contains(gethostname(), ['origin1', 'origin2']);
-
         for ($currentAttempt = 0; $currentAttempt <= $retryAttempts; $currentAttempt++) {
             try {
                 // We directly return the callback on the first attempt.
@@ -70,24 +67,18 @@ class RetryManager
                     return $callback();
                 }
                 // Wrap the callback to distinguish them from the first attempt.
-                if ($debug)
-                    Log::debug("Calling retry with callback");
                 return $this->retry($callback);
             } catch (Throwable $exception) {
-                if ($debug)
-                    Log::debug("RetryManager::exception hit");
                 // Check if we should retry this exception.
                 if (!$this->shouldRetry($exception)) {
-                    if ($debug)
-                        Log::debug("Should not retry, throw exception");
+                    Log::debug("Should not retry, throw exception");
                     throw $exception;
                 }
 
                 // Wait before retry.
                 if ($retryAttempts !== 0) {
                     $delay = $retryDelay * 1000;
-                    if ($debug)
-                        Log::debug("retryAttempts ($retryAttempts) !== 0, usleep for $delay");
+                    Log::debug("retryAttempts ($retryAttempts) !== 0, usleep for $delay");
                     usleep($delay);
                 }
 
@@ -111,6 +102,7 @@ class RetryManager
      */
     public function retry(callable $callback): mixed
     {
+        Log::debug("Redis Manager Retrying..");
         return $callback();
     }
 
@@ -142,20 +134,15 @@ class RetryManager
         // We convert the exception message to lower-case in order to perform case-insensitive comparison.
         $message = $exception->getMessage();
         $exceptionMessage = strtolower($message);
-        Log::debug("RetryManager: shouldRetryRedisException, exceptionMessage: $exceptionMessage");
         // Because we also match only partial exception messages, we cannot use in_array() at this point.
         foreach (self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY as $errorMessage) {
             $contains = str_contains($exceptionMessage, $errorMessage);
             if ($contains) {
-                if (Str::contains(gethostname(), ['origin1', 'origin2'])) {
-                    Log::channel('health')->info("We just had a redis timeout exception but are returning true to retry, check logs: " . gethostname());
-                }
+                Log::channel('health')->info("We just had a redis exception ($exceptionMessage) retry, check logs: " . gethostname());
                 return true;
             }
         }
-        if (Str::contains(gethostname(), ['origin1', 'origin2'])) {
-            Log::channel('health')->info("$exceptionMessage is not in the list, don't retry: " . gethostname());
-        }
+        Log::channel('health')->info("$exceptionMessage is not in the redis retry list, don't retry: " . gethostname());
         return false;
     }
 

@@ -29,7 +29,7 @@ class RetryManager
         'loading',
         'readonly',
         "can't write against a read only replica",
-        "connection timed out"
+   //     "connection timed out"
     ];
 
     /**
@@ -127,22 +127,13 @@ class RetryManager
     {
         $shouldRetryRedisException = $this->shouldRetryRedisException($exception);
         $instanceofRedisException = $exception instanceof RedisException;
-        Log::debug("RetryManager: shouldRetry: shouldRetryRedisException: $shouldRetryRedisException, instanceofRedisException: $instanceofRedisException");
         if ($instanceofRedisException && $shouldRetryRedisException) {
-            Log::debug("RetryManager: shouldRetry return true (1)");
             return true;
-        } else {
-            Log::debug("RetryManager: shouldRetry continue (1)");
         }
 
         if ($this->isNameResolutionException($exception)) {
-            Log::debug("RetryManager: shouldRetry isNameResolutionException, return true");
             return true;
-        } else {
-            Log::debug("RetryManager: isNameResolutionException, not set");
         }
-
-        Log::debug("RetryManager: return false");
         return false;
     }
 
@@ -159,10 +150,10 @@ class RetryManager
         // Because we also match only partial exception messages, we cannot use in_array() at this point.
         foreach (self::ERROR_MESSAGES_INDICATING_UNAVAILABILITY as $errorMessage) {
             $contains = str_contains($exceptionMessage, $errorMessage);
-       //     Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
+            //     Log::debug("RetryManager: shouldRetryRedisException, $errorMessage contains: $exceptionMessage: $contains");
             if ($contains) {
                 Log::debug("RetryManager: shouldRetryRedisException, return true");
-                if ( Str::contains(gethostname(), ['origin1', 'origin2'])) {
+                if (Str::contains(gethostname(), ['origin1', 'origin2'])) {
                     Log::channel('health')->info("We just had a redis timeout exception but are returning true to retry, check logs: " . gethostname());
                 }
                 return true;
